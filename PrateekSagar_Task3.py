@@ -1,654 +1,521 @@
 #!/usr/bin/env python3
 """
-AuraWeather - Advanced Real-Time Weather Application
+AuraPass - Cryptographically Secure Password Suite
 Features:
-- GUI built with tkinter (Clean, modern card-based layout)
-- IP Geolocation auto-detection on startup via ipinfo.io (free tier)
-- OpenWeatherMap API Integration with coordinate lookups and 5-day / 3-hour forecasts
-- Pillow-based weather condition icon loader with an in-memory dictionary cache
-- Dynamic weather theme: background and card colors adapt to current weather conditions
-- Celsius / Fahrenheit client-side conversion toggle
-- Detailed Hourly Forecast panel (next 6 hours in 3-hour intervals)
-- Detailed 5-Day Daily Forecast panel (with min/max ranges and representational conditions)
-- Robust inline GUI error messages for bad requests, missing inputs, and offline states
+- GUI with tkinter (Modern Slate Dark/Light mode theme)
+- Bidirectionally synced slider and spinbox length controls
+- Character pool selection checkboxes (Uppercase, Lowercase, Digits, Symbols)
+- Dynamic strength calculation based on Shannon entropy with real-time colored visual bar
+- Ambiguous character exclusion option
+- Secrets module for cryptographic random generation
+- Guaranteed character category representation
+- Clipboard integration using pyperclip (automatic copy on generation)
+- Session history display (masked passwords, eye icon toggle, direct copy, memory-only)
 """
 
 import tkinter as tk
 from tkinter import ttk, messagebox
-import requests
-from PIL import Image, ImageTk
-import io
-from datetime import datetime
+import secrets
+import pyperclip
 import math
 
-# API Configuration
-API_KEY = "8dd1754b4c4f12edb4c55738a6db041b"
-
-# Dynamic Weather Mood Themes
-WEATHER_THEMES = {
-    "clear": {
-        "bg": "#bae6fd",          # Light blue (sky)
-        "card_bg": "#ffffff",     # Pure white card
-        "fg": "#0f172a",          # Dark slate text
-        "sub_fg": "#475569",      # Medium slate text
-        "accent": "#eab308",      # Gold amber
-        "border": "#e2e8f0",      # Light border
+# Theme Palette configuration matching AuraBMI dashboard
+THEMES = {
+    "light": {
+        "bg": "#f1f5f9",           # Slate 100
+        "card_bg": "#ffffff",      # White
+        "fg": "#0f172a",           # Slate 900
+        "sub_fg": "#475569",       # Slate 600
+        "accent": "#4f46e5",       # Indigo 600
+        "accent_hover": "#4338ca", # Indigo 700
+        "border": "#cbd5e1",       # Slate 300
     },
-    "clouds": {
-        "bg": "#cbd5e1",          # Slate gray (overcast)
-        "card_bg": "#f8fafc",     # Off-white card
-        "fg": "#0f172a",          # Dark slate text
-        "sub_fg": "#475569",      # Medium slate text
-        "accent": "#64748b",      # Muted gray
-        "border": "#e2e8f0",
-    },
-    "rain": {
-        "bg": "#475569",          # Deep slate grey
-        "card_bg": "#1e293b",     # Dark card
-        "fg": "#f8fafc",          # Light text
-        "sub_fg": "#94a3b8",      # Muted text
-        "accent": "#38bdf8",      # Sky blue highlight
-        "border": "#334155",
-    },
-    "snow": {
-        "bg": "#f1f5f9",          # Frosty white
-        "card_bg": "#ffffff",     # Clean card
-        "fg": "#0f172a",          # Dark text
-        "sub_fg": "#475569",
-        "accent": "#0ea5e9",      # Frosty blue
-        "border": "#cbd5e1",
-    },
-    "thunderstorm": {
-        "bg": "#312e81",          # Dark purple storm
-        "card_bg": "#1e293b",     # Dark card
-        "fg": "#f8fafc",          # Light text
-        "sub_fg": "#94a3b8",
-        "accent": "#a855f7",      # Lightning purple
-        "border": "#334155",
-    },
-    "mist": {
-        "bg": "#e2e8f0",          # Foggy white
-        "card_bg": "#ffffff",
-        "fg": "#0f172a",
-        "sub_fg": "#475569",
-        "accent": "#64748b",
-        "border": "#cbd5e1",
+    "dark": {
+        "bg": "#0f172a",           # Slate 900
+        "card_bg": "#1e293b",      # Slate 800
+        "fg": "#f8fafc",           # Slate 50
+        "sub_fg": "#94a3b8",       # Slate 400
+        "accent": "#6366f1",       # Indigo 400
+        "accent_hover": "#4f46e5", # Indigo 500
+        "border": "#334155",       # Slate 700
     }
 }
 
-# Dictionary to cache PIL PhotoImages in memory
-icon_cache = {}
+
+def secure_shuffle(lst):
+    """Performs an unbiased, cryptographically secure Fisher-Yates shuffle in-place."""
+    for i in range(len(lst) - 1, 0, -1):
+        j = secrets.randbelow(i + 1)
+        lst[i], lst[j] = lst[j], lst[i]
 
 
-def get_weather_icon(icon_code, size=(55, 55)):
-    """Downloads weather condition icons and caches them in memory."""
-    cache_key = f"{icon_code}_{size[0]}"
-    if cache_key in icon_cache:
-        return icon_cache[cache_key]
-
-    try:
-        url = f"https://openweathermap.org/img/wn/{icon_code}@2x.png"
-        r = requests.get(url, timeout=3)
-        if r.status_code == 200:
-            img = Image.open(io.BytesIO(r.content))
-            img = img.resize(size, Image.Resampling.LANCZOS)
-            photo = ImageTk.PhotoImage(img)
-            icon_cache[cache_key] = photo
-            return photo
-    except Exception:
-        pass
-    return None
-
-
-class WeatherApp:
+class PasswordGeneratorApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("AuraWeather - Premium Health & Forecast Suite")
-        self.root.geometry("1000x680")
-        self.root.minsize(920, 600)
+        self.root.title("AuraPass - Secure Password Suite")
+        self.root.geometry("860x540")
+        self.root.minsize(780, 480)
 
-        # Variables
-        self.search_var = tk.StringVar()
-        self.unit_var = tk.StringVar(value="C") # C for Celsius, F for Fahrenheit
-        self.error_var = tk.StringVar()
+        # Settings variables
+        self.theme_var = tk.StringVar(value="light")
+        self.length_var = tk.IntVar(value=16)
         
-        # Memory caches for current weather metrics and forecasts (base stored in metric)
-        self.current_data = None
-        self.forecast_data = None
+        self.upper_var = tk.BooleanVar(value=True)
+        self.lower_var = tk.BooleanVar(value=True)
+        self.digits_var = tk.BooleanVar(value=True)
+        self.symbols_var = tk.BooleanVar(value=False)
+        self.ambiguous_var = tk.BooleanVar(value=False)
+
+        self.password_output_var = tk.StringVar()
         
-        # Draw UI Panels
+        # Session history stores (Memory-only, last 5 items)
+        self.history = []
+        self.history_visible = []
+
+        # Create GUI layout
         self.create_widgets()
         
-        # Geolocation auto-detection on startup
-        self.root.after(100, self.detect_ip_location)
+        # Attach traces for live interactive visual updates
+        self.length_var.trace_add("write", lambda *args: self.update_strength_display())
+        self.upper_var.trace_add("write", lambda *args: self.update_strength_display())
+        self.lower_var.trace_add("write", lambda *args: self.update_strength_display())
+        self.digits_var.trace_add("write", lambda *args: self.update_strength_display())
+        self.symbols_var.trace_add("write", lambda *args: self.update_strength_display())
+        self.ambiguous_var.trace_add("write", lambda *args: self.update_strength_display())
+
+        # Sync visual theme
+        self.apply_theme()
+        
+        # Draw strength visual bar initially
+        self.update_strength_display()
 
     def create_widgets(self):
-        """Constructs layout panels and cards."""
-        # Main container grid
-        self.main_frame = tk.Frame(self.root, bg="#f1f5f9", padx=15, pady=15)
-        self.main_frame.pack(fill=tk.BOTH, expand=True)
+        """Builds GUI layout grids."""
+        # Top Header Bar
+        header_bar = ttk.Frame(self.root, padding=(20, 10))
+        header_bar.pack(side=tk.TOP, fill=tk.X)
 
-        # Top Header Card (Search bar + Actions + Unit Selector)
-        header_card = tk.Frame(self.main_frame, bg="#ffffff", bd=1, relief="solid")
-        header_card.pack(fill=tk.X, pady=(0, 15))
+        title_lbl = ttk.Label(header_bar, text="AuraPass Suite", font=("Segoe UI", 16, "bold"))
+        title_lbl.pack(side=tk.LEFT)
+
+        theme_btn_light = ttk.Radiobutton(header_bar, text="☀️ Light", variable=self.theme_var, value="light", command=self.apply_theme)
+        theme_btn_light.pack(side=tk.RIGHT, padx=5)
+        theme_btn_dark = ttk.Radiobutton(header_bar, text="🌙 Dark", variable=self.theme_var, value="dark", command=self.apply_theme)
+        theme_btn_dark.pack(side=tk.RIGHT, padx=5)
+
+        # Main grid container split: Left (Settings), Right (Output & History)
+        main_container = ttk.Frame(self.root, padding=15)
+        main_container.pack(fill=tk.BOTH, expand=True)
+
+        main_container.columnconfigure(0, weight=1, minsize=380)
+        main_container.columnconfigure(1, weight=1, minsize=380)
+        main_container.rowconfigure(0, weight=1)
+
+        # LEFT SIDE PANEL: CONFIGURATIONS CARD
+        left_col = ttk.Frame(main_container)
+        left_col.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+
+        settings_card = ttk.Frame(left_col, style="Card.TFrame", padding=15)
+        settings_card.pack(fill=tk.BOTH, expand=True)
+
+        ttk.Label(settings_card, text="GENERATOR SETTINGS", font=("Segoe UI", 9, "bold")).pack(anchor=tk.W, pady=(0, 10))
+
+        # Synchronized Length Controls
+        length_frame = ttk.Frame(settings_card)
+        length_frame.pack(fill=tk.X, pady=8)
         
-        # Inner padding for header card
-        header_inner = tk.Frame(header_card, bg="#ffffff", padx=15, pady=12)
-        header_inner.pack(fill=tk.X)
+        ttk.Label(length_frame, text="Password Length:").pack(side=tk.LEFT)
         
-        ttk.Label(header_inner, text="📍 Search:", font=("Segoe UI", 10, "bold"), background="#ffffff").pack(side=tk.LEFT, padx=(0, 5))
+        # Spinbox
+        length_spin = tk.Spinbox(length_frame, from_=8, to=64, textvariable=self.length_var, width=5, justify=tk.CENTER)
+        length_spin.pack(side=tk.RIGHT, padx=(10, 0))
         
-        self.search_entry = tk.Entry(header_inner, textvariable=self.search_var, font=("Segoe UI", 11),
-                                     bg="#f8fafc", fg="#0f172a", insertbackground="#0f172a",
-                                     relief=tk.FLAT, highlightthickness=1, highlightbackground="#cbd5e1",
-                                     highlightcolor="#4f46e5", width=25)
-        self.search_entry.pack(side=tk.LEFT, padx=5, ipady=4)
-        self.search_entry.bind("<Return>", lambda e: self.fetch_weather_action())
+        # Slider
+        length_slider = ttk.Scale(length_frame, from_=8, to=64, variable=self.length_var, orient=tk.HORIZONTAL)
+        length_slider.pack(side=tk.RIGHT, fill=tk.X, expand=True, padx=5)
 
-        # Search button
-        self.search_btn = tk.Button(header_inner, text="Get Weather", font=("Segoe UI", 9, "bold"),
-                                    bg="#4f46e5", fg="white", activebackground="#4338ca", activeforeground="white",
-                                    relief="flat", bd=0, padx=12, pady=5, command=self.fetch_weather_action)
-        self.search_btn.pack(side=tk.LEFT, padx=5)
+        # Character Options Frame
+        options_frame = ttk.Frame(settings_card)
+        options_frame.pack(fill=tk.X, pady=10)
 
-        # Auto-Locate button
-        self.locate_btn = tk.Button(header_inner, text="📍 Auto-Locate", font=("Segoe UI", 9),
-                                    bg="#e2e8f0", fg="#0f172a", activebackground="#cbd5e1", activeforeground="#0f172a",
-                                    relief="flat", bd=0, padx=10, pady=5, command=self.detect_ip_location)
-        self.locate_btn.pack(side=tk.LEFT, padx=5)
+        ttk.Label(options_frame, text="Character Pools (Select at least 2):", font=("Segoe UI", 9, "italic")).pack(anchor=tk.W, pady=(0, 5))
 
-        # Unit Toggle Frame
-        unit_frame = tk.Frame(header_inner, bg="#ffffff")
-        unit_frame.pack(side=tk.RIGHT, padx=5)
-        
-        self.c_btn = ttk.Radiobutton(unit_frame, text="°C", variable=self.unit_var, value="C", command=self.toggle_temperature_units)
-        self.c_btn.pack(side=tk.LEFT, padx=3)
-        self.f_btn = ttk.Radiobutton(unit_frame, text="°F", variable=self.unit_var, value="F", command=self.toggle_temperature_units)
-        self.f_btn.pack(side=tk.LEFT, padx=3)
+        ttk.Checkbutton(options_frame, text="Uppercase Letters (A-Z)", variable=self.upper_var).pack(anchor=tk.W, pady=3)
+        ttk.Checkbutton(options_frame, text="Lowercase Letters (a-z)", variable=self.lower_var).pack(anchor=tk.W, pady=3)
+        ttk.Checkbutton(options_frame, text="Numbers (0-9)", variable=self.digits_var).pack(anchor=tk.W, pady=3)
+        ttk.Checkbutton(options_frame, text="Symbols (!@#$...)", variable=self.symbols_var).pack(anchor=tk.W, pady=3)
 
-        # Error notification label inside header
-        self.error_lbl = tk.Label(header_inner, textvariable=self.error_var, fg="#ef4444", bg="#ffffff",
-                                  font=("Segoe UI", 9, "bold"), anchor=tk.W)
-        self.error_lbl.pack(side=tk.LEFT, padx=15)
-
-        # Workspace split (Left: Current summary card, Right: Forecasts lists)
-        workspace = tk.Frame(self.main_frame, bg="#f1f5f9")
-        workspace.pack(fill=tk.BOTH, expand=True)
-
-        workspace.columnconfigure(0, weight=0, minsize=420)
-        workspace.columnconfigure(1, weight=1)
-        workspace.rowconfigure(0, weight=1)
-
-        # LEFT SIDE COLUMN
-        self.left_col = tk.Frame(workspace, bg="#f1f5f9")
-        self.left_col.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
-
-        # Main Current Weather Card
-        self.current_card = tk.Frame(self.left_col, bg="#ffffff", bd=1, relief="solid", padx=20, pady=20)
-        self.current_card.pack(fill=tk.BOTH, expand=True)
-
-        # Location details
-        self.location_lbl = tk.Label(self.current_card, text="Select Location", font=("Segoe UI", 18, "bold"), bg="#ffffff", fg="#0f172a")
-        self.location_lbl.pack(anchor=tk.W, pady=(0, 2))
-        
-        self.date_lbl = tk.Label(self.current_card, text="--:--", font=("Segoe UI", 9), bg="#ffffff", fg="#64748b")
-        self.date_lbl.pack(anchor=tk.W, pady=(0, 15))
-
-        # Large Temperature and icon row
-        temp_row = tk.Frame(self.current_card, bg="#ffffff")
-        temp_row.pack(fill=tk.X, pady=10)
-        
-        self.main_icon_lbl = tk.Label(temp_row, bg="#ffffff")
-        self.main_icon_lbl.pack(side=tk.LEFT, padx=(0, 10))
-        
-        self.temp_lbl = tk.Label(temp_row, text="--°", font=("Segoe UI", 48, "bold"), bg="#ffffff", fg="#0f172a")
-        self.temp_lbl.pack(side=tk.LEFT)
-
-        self.condition_lbl = tk.Label(self.current_card, text="--", font=("Segoe UI", 14, "bold"), bg="#ffffff", fg="#0f172a")
-        self.condition_lbl.pack(anchor=tk.W, pady=(5, 15))
-
-        # Horizontal separator
-        sep = ttk.Separator(self.current_card, orient=tk.HORIZONTAL)
+        # Separator line
+        sep = ttk.Separator(settings_card, orient=tk.HORIZONTAL)
         sep.pack(fill=tk.X, pady=10)
 
-        # Extra Weather Metrics Grid (2x2)
-        metrics_frame = tk.Frame(self.current_card, bg="#ffffff")
-        metrics_frame.pack(fill=tk.X, pady=10)
-
-        metrics_frame.columnconfigure(0, weight=1)
-        metrics_frame.columnconfigure(1, weight=1)
-
-        # Metric 1: Humidity
-        self.humidity_card = tk.Frame(metrics_frame, bg="#f8fafc", padx=10, pady=8, bd=1, relief="solid")
-        self.humidity_card.grid(row=0, column=0, padx=(0, 5), pady=(0, 5), sticky="ew")
-        tk.Label(self.humidity_card, text="Humidity", font=("Segoe UI", 8), bg="#f8fafc", fg="#64748b").pack(anchor=tk.W)
-        self.humidity_val = tk.Label(self.humidity_card, text="--", font=("Segoe UI", 12, "bold"), bg="#f8fafc", fg="#0f172a")
-        self.humidity_val.pack(anchor=tk.W)
-
-        # Metric 2: Wind
-        self.wind_card = tk.Frame(metrics_frame, bg="#f8fafc", padx=10, pady=8, bd=1, relief="solid")
-        self.wind_card.grid(row=0, column=1, padx=(5, 0), pady=(0, 5), sticky="ew")
-        tk.Label(self.wind_card, text="Wind Speed", font=("Segoe UI", 8), bg="#f8fafc", fg="#64748b").pack(anchor=tk.W)
-        self.wind_val = tk.Label(self.wind_card, text="--", font=("Segoe UI", 12, "bold"), bg="#f8fafc", fg="#0f172a")
-        self.wind_val.pack(anchor=tk.W)
-
-        # Metric 3: Pressure
-        self.pressure_card = tk.Frame(metrics_frame, bg="#f8fafc", padx=10, pady=8, bd=1, relief="solid")
-        self.pressure_card.grid(row=1, column=0, padx=(0, 5), pady=(5, 0), sticky="ew")
-        tk.Label(self.pressure_card, text="Pressure", font=("Segoe UI", 8), bg="#f8fafc", fg="#64748b").pack(anchor=tk.W)
-        self.pressure_val = tk.Label(self.pressure_card, text="--", font=("Segoe UI", 12, "bold"), bg="#f8fafc", fg="#0f172a")
-        self.pressure_val.pack(anchor=tk.W)
-
-        # Metric 4: Visibility
-        self.visibility_card = tk.Frame(metrics_frame, bg="#f8fafc", padx=10, pady=8, bd=1, relief="solid")
-        self.visibility_card.grid(row=1, column=1, padx=(5, 0), pady=(5, 0), sticky="ew")
-        tk.Label(self.visibility_card, text="Visibility", font=("Segoe UI", 8), bg="#f8fafc", fg="#64748b").pack(anchor=tk.W)
-        self.visibility_val = tk.Label(self.visibility_card, text="--", font=("Segoe UI", 12, "bold"), bg="#f8fafc", fg="#0f172a")
-        self.visibility_val.pack(anchor=tk.W)
-
-
-        # RIGHT SIDE COLUMN
-        self.right_col = tk.Frame(workspace, bg="#f1f5f9")
-        self.right_col.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
-
-        # 1. Hourly Forecast Card
-        self.hourly_card = tk.Frame(self.right_col, bg="#ffffff", bd=1, relief="solid", padx=15, pady=15)
-        self.hourly_card.pack(fill=tk.X, pady=(0, 15))
+        # Exclusions Frame
+        exclude_frame = ttk.Frame(settings_card)
+        exclude_frame.pack(fill=tk.X, pady=5)
         
-        tk.Label(self.hourly_card, text="HOURLY FORECAST (NEXT 6 HOURS)", font=("Segoe UI", 9, "bold"), bg="#ffffff", fg="#0f172a").pack(anchor=tk.W, pady=(0, 10))
+        ttk.Checkbutton(exclude_frame, text="Exclude Ambiguous Characters\n(e.g., 0, O, o, 1, I, l, |)", variable=self.ambiguous_var).pack(anchor=tk.W)
 
-        self.hourly_row = tk.Frame(self.hourly_card, bg="#ffffff")
-        self.hourly_row.pack(fill=tk.X)
+        # RIGHT SIDE PANEL: GENERATED & HISTORY
+        right_col = ttk.Frame(main_container)
+        right_col.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
 
-        # 2. Daily Forecast Card
-        self.daily_card = tk.Frame(self.right_col, bg="#ffffff", bd=1, relief="solid", padx=15, pady=15)
-        self.daily_card.pack(fill=tk.BOTH, expand=True)
+        # 1. Output Metrics Card
+        output_card = ttk.Frame(right_col, style="Card.TFrame", padding=15)
+        output_card.pack(fill=tk.X, pady=(0, 10))
 
-        tk.Label(self.daily_card, text="5-DAY DAILY FORECAST", font=("Segoe UI", 9, "bold"), bg="#ffffff", fg="#0f172a").pack(anchor=tk.W, pady=(0, 10))
+        ttk.Label(output_card, text="SECURE PASSWORD GENERATED", font=("Segoe UI", 9, "bold")).pack(anchor=tk.W, pady=(0, 8))
 
-        self.daily_list_frame = tk.Frame(self.daily_card, bg="#ffffff")
-        self.daily_list_frame.pack(fill=tk.BOTH, expand=True)
+        # Output entry field
+        output_row = ttk.Frame(output_card)
+        output_row.pack(fill=tk.X, pady=5)
+        
+        self.output_entry = tk.Entry(output_row, textvariable=self.password_output_var, font=("Courier New", 12, "bold"),
+                                     relief=tk.FLAT, bd=0, state="readonly", justify=tk.CENTER)
+        self.output_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, ipady=6, padx=(0, 5))
+        
+        self.copy_btn = ttk.Button(output_row, text="📋 Copy", width=8, command=self.copy_active_password)
+        self.copy_btn.pack(side=tk.RIGHT)
 
-    def detect_ip_location(self):
-        """Startup hook that detects user's location via IP Geolocation APIs."""
-        self.error_var.set("")
-        self.status_bar_update("Detecting location via IP...")
+        # Strength indicator bar and text
+        strength_row = ttk.Frame(output_card)
+        strength_row.pack(fill=tk.X, pady=(10, 2))
+        
+        ttk.Label(strength_row, text="Strength:").pack(side=tk.LEFT)
+        self.strength_lbl = ttk.Label(strength_row, text="Calculated Level", font=("Segoe UI", 9, "bold"))
+        self.strength_lbl.pack(side=tk.RIGHT)
+
+        self.strength_canvas = tk.Canvas(output_card, height=8, highlightthickness=0)
+        self.strength_canvas.pack(fill=tk.X, pady=5)
+
+        # Primary generate action button
+        self.generate_btn = ttk.Button(output_card, text="Generate Secure Password", style="Action.TButton", command=self.generate_password)
+        self.generate_btn.pack(fill=tk.X, pady=(8, 0), ipady=5)
+
+        # 2. History card
+        history_card = ttk.Frame(right_col, style="Card.TFrame", padding=15)
+        history_card.pack(fill=tk.BOTH, expand=True)
+
+        ttk.Label(history_card, text="SESSION HISTORY (LAST 5)", font=("Segoe UI", 9, "bold")).pack(anchor=tk.W, pady=(0, 8))
+
+        self.history_inner_frame = ttk.Frame(history_card)
+        self.history_inner_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Populate history initially
+        self.redraw_history()
+
+        # Status strip at bottom
+        self.status_var = tk.StringVar(value="Ready")
+        status_bar = ttk.Label(self.root, textvariable=self.status_var, relief=tk.SUNKEN, anchor=tk.W, padding=(10, 3))
+        status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+
+    def calculate_current_entropy(self):
+        """Calculates mathematical Shannon entropy based on options."""
+        length = self.length_var.get()
+        
+        include_upper = self.upper_var.get()
+        include_lower = self.lower_var.get()
+        include_digits = self.digits_var.get()
+        include_symbols = self.symbols_var.get()
+        exclude_ambiguous = self.ambiguous_var.get()
+
+        N = 0
+        if include_lower:
+            N += 24 if exclude_ambiguous else 26
+        if include_upper:
+            N += 24 if exclude_ambiguous else 26
+        if include_digits:
+            N += 8 if exclude_ambiguous else 10
+        if include_symbols:
+            N += 27 if exclude_ambiguous else 28 # '|' is ambiguous
+
+        if N == 0:
+            return 0
+            
+        return length * math.log2(N)
+
+    def update_strength_display(self):
+        """Redraws the strength bar indicator and label based on settings."""
+        include_upper = self.upper_var.get()
+        include_lower = self.lower_var.get()
+        include_digits = self.digits_var.get()
+        include_symbols = self.symbols_var.get()
+
+        pools_selected = sum([include_upper, include_lower, include_digits, include_symbols])
+
+        if pools_selected < 2:
+            strength_text = "Select at least 2 pools"
+            color = "#ef4444"
+            pct = 0.1
+        else:
+            entropy = self.calculate_current_entropy()
+            if entropy < 36:
+                strength_text = f"Weak ({entropy:.1f} bits)"
+                color = "#ef4444"
+                pct = min(1.0, max(0.15, entropy / 100.0))
+            elif entropy < 56:
+                strength_text = f"Medium ({entropy:.1f} bits)"
+                color = "#f59e0b"
+                pct = min(1.0, entropy / 100.0)
+            elif entropy < 75:
+                strength_text = f"Strong ({entropy:.1f} bits)"
+                color = "#10b981"
+                pct = min(1.0, entropy / 100.0)
+            else:
+                strength_text = f"Very Strong ({entropy:.1f} bits)"
+                color = "#6366f1"
+                pct = min(1.0, entropy / 100.0)
+
+        self.strength_lbl.configure(text=strength_text, foreground=color)
+
+        # Clear and redraw custom canvas track
+        self.strength_canvas.delete("all")
+        
+        w = self.strength_canvas.winfo_width()
+        if w <= 0:
+            # Fallback if canvas is not yet drawn/configured on grid layout initializations
+            w = 340
+            
+        h = 8
+        theme = THEMES[self.theme_var.get()]
+        self.strength_canvas.configure(bg=theme["card_bg"])
+        
+        # Track background
+        self.strength_canvas.create_rectangle(0, 0, w, h, fill=theme["border"], outline="", width=0)
+        
+        # Fill meter
+        fill_w = w * pct
+        if fill_w > 0:
+            self.strength_canvas.create_rectangle(0, 0, fill_w, h, fill=color, outline="", width=0)
+
+    def generate_password(self):
+        """Generates a secure password based on GUI configuration constraints."""
+        length = self.length_var.get()
+        
+        include_upper = self.upper_var.get()
+        include_lower = self.lower_var.get()
+        include_digits = self.digits_var.get()
+        include_symbols = self.symbols_var.get()
+        exclude_ambiguous = self.ambiguous_var.get()
+
+        # Validations
+        if length < 8 or length > 64:
+            messagebox.showerror("Validation Error", "Password length must be between 8 and 64 characters.")
+            return
+
+        pools_selected = sum([include_upper, include_lower, include_digits, include_symbols])
+        if pools_selected < 2:
+            messagebox.showerror("Validation Error", "At least 2 character pools must be selected to generate a secure password.")
+            return
+
+        # Prepare pools
+        pools = []
+        lower_pool = "abcdefghijklmnopqrstuvwxyz"
+        upper_pool = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        digits_pool = "0123456789"
+        symbols_pool = "!@#$%^&*()_+-=[]{}|;:,.<>?/~"
+
+        if exclude_ambiguous:
+            # Exclude confusing chars: 0, o, O, 1, l, I, |
+            for char in "0Oo1Il|":
+                lower_pool = lower_pool.replace(char, "")
+                upper_pool = upper_pool.replace(char, "")
+                digits_pool = digits_pool.replace(char, "")
+                symbols_pool = symbols_pool.replace(char, "")
+
+        if include_lower:
+            pools.append(lower_pool)
+        if include_upper:
+            pools.append(upper_pool)
+        if include_digits:
+            pools.append(digits_pool)
+        if include_symbols:
+            pools.append(symbols_pool)
+
+        # Assemble character list
+        password_chars = []
+        
+        # Step 1: Ensure at least one character from each selected category is included
+        for pool in pools:
+            password_chars.append(secrets.choice(pool))
+
+        # Step 2: Fill out remaining characters from combined selected pools
+        combined_pool = "".join(pools)
+        remaining_len = length - len(password_chars)
+        for _ in range(remaining_len):
+            password_chars.append(secrets.choice(combined_pool))
+
+        # Step 3: Securely shuffle using Fisher-Yates algorithm
+        secure_shuffle(password_chars)
+        
+        password = "".join(password_chars)
+
+        # Update output
+        self.password_output_var.set(password)
+
+        # Auto-copy to Clipboard
         try:
-            r = requests.get("https://ipinfo.io/json", timeout=3.5)
-            if r.status_code == 200:
-                data = r.json()
-                city = data.get("city")
-                if city:
-                    self.search_var.set(city)
-                    self.fetch_weather(city)
-                    return
+            pyperclip.copy(password)
+            self.status_var.set("Secure password generated and copied to clipboard!")
         except Exception:
-            pass
-            
-        # Offline fallback default
-        self.search_var.set("New Delhi")
-        self.fetch_weather("New Delhi")
+            self.status_var.set("Secure password generated! (Clipboard auto-copy failed)")
 
-    def fetch_weather_action(self):
-        """Search action wrapper handling entry inputs."""
-        city = self.search_var.get().strip()
-        if not city:
-            self.error_var.set("Please enter a city name.")
+        # Log into memory history (Keep latest 5)
+        self.history.insert(0, password)
+        self.history_visible.insert(0, False)
+        if len(self.history) > 5:
+            self.history.pop()
+            self.history_visible.pop()
+
+        self.redraw_history()
+
+    def copy_active_password(self):
+        """Manually copies active display password to clipboard."""
+        pw = self.password_output_var.get()
+        if not pw:
             return
-        self.error_var.set("")
-        self.fetch_weather(city)
-
-    def fetch_weather(self, city):
-        """Downloads weather and forecast data from OpenWeatherMap."""
-        self.status_bar_update(f"Searching for '{city}'...")
         try:
-            # Step 1: Geocoding Lookup API
-            geo_url = "https://api.openweathermap.org/geo/1.0/direct"
-            geo_params = {"q": city, "limit": 1, "appid": API_KEY}
-            geo_res = requests.get(geo_url, params=geo_params, timeout=4)
-            
-            if geo_res.status_code != 200:
-                self.error_var.set("Weather API request error.")
-                return
-                
-            geo_data = geo_res.json()
-            if not geo_data:
-                self.error_var.set(f"City '{city}' not found.")
-                return
-                
-            lat = geo_data[0]["lat"]
-            lon = geo_data[0]["lon"]
-            name = geo_data[0]["name"]
-            country = geo_data[0].get("country", "")
-
-            # Step 2: Current Weather metrics API
-            weather_url = "https://api.openweathermap.org/data/2.5/weather"
-            weather_params = {"lat": lat, "lon": lon, "units": "metric", "appid": API_KEY}
-            w_res = requests.get(weather_url, params=weather_params, timeout=4)
-            
-            if w_res.status_code != 200:
-                self.error_var.set("Failed to fetch weather metrics.")
-                return
-            self.current_data = w_res.json()
-            self.current_data["display_name"] = f"{name}, {country}"
-
-            # Step 3: Forecast metrics API (5 Days / 3 Hours steps)
-            forecast_url = "https://api.openweathermap.org/data/2.5/forecast"
-            f_res = requests.get(forecast_url, params=weather_params, timeout=4)
-            
-            if f_res.status_code != 200:
-                self.error_var.set("Failed to fetch forecast details.")
-                return
-            self.forecast_data = f_res.json()
-
-            # Refresh display panels
-            self.update_weather_display()
-            self.error_var.set("") # Clear any prior warnings
-            self.status_bar_update("Ready")
-            
-        except requests.exceptions.Timeout:
-            self.error_var.set("Network timeout. Please check connections.")
-        except requests.exceptions.ConnectionError:
-            self.error_var.set("Network offline. Connection refused.")
+            pyperclip.copy(pw)
+            self.status_var.set("Copied active password to clipboard.")
         except Exception as e:
-            self.error_var.set(f"Unexpected error: {e}")
+            messagebox.showerror("Clipboard Error", f"Failed to copy to clipboard: {e}")
 
-    def update_weather_display(self):
-        """Fills up UI frames with data and applies weather condition themes."""
-        if not self.current_data or not self.forecast_data:
-            return
+    def copy_to_clipboard(self, text):
+        """Copies specific text to clipboard."""
+        try:
+            pyperclip.copy(text)
+            self.status_var.set("Copied password to clipboard.")
+        except Exception as e:
+            messagebox.showerror("Clipboard Error", f"Failed to copy: {e}")
 
-        # 1. Resolve Weather Condition Theme mapping
-        condition_id = self.current_data["weather"][0]["id"]
-        main_cond = self.current_data["weather"][0]["main"].lower()
-        
-        # Map OpenWeather ID groups
-        theme_key = "clouds"
-        if 200 <= condition_id < 300:
-            theme_key = "thunderstorm"
-        elif 300 <= condition_id < 600:
-            theme_key = "rain"
-        elif 600 <= condition_id < 700:
-            theme_key = "snow"
-        elif condition_id == 800:
-            theme_key = "clear"
-        elif 701 <= condition_id < 800:
-            theme_key = "mist"
-            
-        self.apply_theme_palette(theme_key)
+    def toggle_history_visibility(self, index):
+        """Toggles masking state for history list item at index."""
+        if 0 <= index < len(self.history_visible):
+            self.history_visible[index] = not self.history_visible[index]
+            self.redraw_history()
 
-        # 2. Render Main Card Text details
-        name = self.current_data["display_name"]
-        self.location_lbl.configure(text=name)
-        
-        query_time = datetime.fromtimestamp(self.current_data["dt"]).strftime("%A, %b %d, %H:%M")
-        self.date_lbl.configure(text=f"Last updated: {query_time}")
-        
-        cond_desc = self.current_data["weather"][0]["description"].title()
-        self.condition_lbl.configure(text=cond_desc)
-
-        # Get icon PhotoImage via PIL
-        icon_code = self.current_data["weather"][0]["icon"]
-        p_img = get_weather_icon(icon_code, size=(85, 85))
-        if p_img:
-            self.main_icon_lbl.configure(image=p_img)
-            self.main_icon_lbl.image = p_img # keep reference
-
-        # 3. Dynamic Values rendering (responds to Celsius/Fahrenheit toggle)
-        self.refresh_metric_labels()
-        
-        # 4. Hourly Forecast Grid rendering
-        self.render_hourly_panel()
-        
-        # 5. 5-Day Forecast Grid rendering
-        self.render_daily_panel()
-
-    def refresh_metric_labels(self):
-        """Converts values client-side depending on unit variables and updates UI labels."""
-        if not self.current_data:
-            return
-
-        # Temperature
-        temp_c = self.current_data["main"]["temp"]
-        if self.unit_var.get() == "C":
-            self.temp_lbl.configure(text=f"{round(temp_c)}°")
-        else:
-            temp_f = temp_c * 9/5 + 32
-            self.temp_lbl.configure(text=f"{round(temp_f)}°")
-
-        # Humidity
-        humidity = self.current_data["main"]["humidity"]
-        self.humidity_val.configure(text=f"{humidity}%")
-
-        # Wind Speed
-        wind_c = self.current_data["wind"]["speed"] # m/s
-        if self.unit_var.get() == "C":
-            self.wind_val.configure(text=f"{wind_c:.1f} m/s")
-        else:
-            wind_f = wind_c * 2.23694 # mph
-            self.wind_val.configure(text=f"{wind_f:.1f} mph")
-
-        # Pressure
-        pressure = self.current_data["main"]["pressure"]
-        self.pressure_val.configure(text=f"{pressure} hPa")
-
-        # Visibility
-        visibility_m = self.current_data.get("visibility", 10000)
-        visibility_km = visibility_m / 1000.0
-        if self.unit_var.get() == "C":
-            self.visibility_val.configure(text=f"{visibility_km:.1f} km")
-        else:
-            visibility_mi = visibility_km * 0.621371
-            self.visibility_val.configure(text=f"{visibility_mi:.1f} mi")
-
-    def render_hourly_panel(self):
-        """Loads forecast intervals for the next 6 hours in horizontal widgets."""
-        for child in self.hourly_row.winfo_children():
+    def redraw_history(self):
+        """Repopulates layout panel showing historical logs."""
+        for child in self.history_inner_frame.winfo_children():
             child.destroy()
 
-        if not self.forecast_data:
+        theme = THEMES[self.theme_var.get()]
+
+        if not self.history:
+            lbl = ttk.Label(self.history_inner_frame, text="No passwords logged in this session.", 
+                            font=("Segoe UI", 9, "italic"), foreground=theme["sub_fg"])
+            lbl.pack(pady=20)
             return
 
-        # We display indices [0, 1] corresponding to next 3 and 6 hours
-        forecast_list = self.forecast_data.get("list", [])
-        theme = WEATHER_THEMES[self.theme_key]
-        
-        # Include current weather index as the start comparison
-        current_time_str = "Now"
-        current_temp = self.current_data["main"]["temp"]
-        current_icon = self.current_data["weather"][0]["icon"]
-        current_short = self.current_data["weather"][0]["main"]
-        
-        indices_list = [(current_time_str, current_temp, current_icon, current_short)]
-        
-        # Add next two hourly forecast indices
-        for i in range(min(2, len(forecast_list))):
-            item = forecast_list[i]
-            dt = datetime.fromtimestamp(item["dt"])
-            time_str = dt.strftime("%H:%M")
-            temp = item["main"]["temp"]
-            icon = item["weather"][0]["icon"]
-            short_desc = item["weather"][0]["main"]
-            indices_list.append((time_str, temp, icon, short_desc))
+        for idx, pw in enumerate(self.history):
+            row_f = ttk.Frame(self.history_inner_frame, style="Card.TFrame", padding=6)
+            row_f.pack(fill=tk.X, pady=3)
 
-        self.hourly_row.columnconfigure((0, 1, 2), weight=1)
+            is_visible = self.history_visible[idx]
+            display_txt = pw if is_visible else "•" * len(pw)
 
-        for col_idx, (t_str, temp_c, icon_code, s_desc) in enumerate(indices_list):
-            cell = tk.Frame(self.hourly_row, bg=theme["card_bg"], bd=1, relief="solid", padx=10, pady=10)
-            cell.grid(row=0, column=col_idx, padx=5, sticky="ew")
+            # Left aligned masked/unmasked text block
+            pw_lbl = ttk.Label(row_f, text=display_txt, font=("Courier New", 10, "bold"), anchor=tk.W)
+            pw_lbl.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
 
-            # Time header
-            tk.Label(cell, text=t_str, font=("Segoe UI", 9, "bold"), bg=theme["card_bg"], fg=theme["fg"]).pack()
-            
-            # Icon
-            cell_icon = tk.Label(cell, bg=theme["card_bg"])
-            cell_icon.pack(pady=2)
-            p_img = get_weather_icon(icon_code, size=(45, 45))
-            if p_img:
-                cell_icon.configure(image=p_img)
-                cell_icon.image = p_img # reference
+            # Quick Action Buttons (using flat standard Tk buttons styled on theme cards)
+            copy_btn = tk.Button(row_f, text="📋 Copy", font=("Segoe UI", 8), bg=theme["border"], fg=theme["fg"],
+                                 activebackground=theme["accent"], activeforeground="white", relief="flat", bd=0, padx=6, pady=2,
+                                 command=lambda p=pw: self.copy_to_clipboard(p))
+            copy_btn.pack(side=tk.RIGHT, padx=2)
 
-            # Temp
-            if self.unit_var.get() == "C":
-                temp_text = f"{round(temp_c)}°C"
-            else:
-                temp_text = f"{round(temp_c * 9/5 + 32)}°F"
-                
-            tk.Label(cell, text=temp_text, font=("Segoe UI", 11, "bold"), bg=theme["card_bg"], fg=theme["fg"]).pack()
-            
-            # Short condition text
-            tk.Label(cell, text=s_desc, font=("Segoe UI", 8), bg=theme["card_bg"], fg=theme["sub_fg"]).pack()
+            eye_txt = "🙈 Hide" if is_visible else "👁️ Show"
+            eye_btn = tk.Button(row_f, text=eye_txt, font=("Segoe UI", 8), bg=theme["border"], fg=theme["fg"],
+                                activebackground=theme["accent"], activeforeground="white", relief="flat", bd=0, padx=6, pady=2,
+                                command=lambda index=idx: self.toggle_history_visibility(index))
+            eye_btn.pack(side=tk.RIGHT, padx=2)
 
-    def render_daily_panel(self):
-        """Aggregates and renders 5-day daily forecast metrics vertically."""
-        for child in self.daily_list_frame.winfo_children():
-            child.destroy()
+    def apply_theme(self):
+        """Traverses UI hierarchy updating colors according to theme selection."""
+        theme = THEMES[self.theme_var.get()]
 
-        if not self.forecast_data:
-            return
+        # Configure Root Widget Background
+        self.root.configure(bg=theme["bg"])
 
-        forecast_list = self.forecast_data.get("list", [])
-        
-        # Group list items by date
-        from collections import defaultdict
-        daily_groups = defaultdict(list)
-        for item in forecast_list:
-            dt_txt = item.get("dt_txt", "")
-            date_key = dt_txt.split(" ")[0]
-            daily_groups[date_key].append(item)
-
-        # Exclude today's entries to render future 5 days cleanly
-        today_key = datetime.now().strftime("%Y-%m-%d")
-        
-        daily_forecast_days = []
-        for date_str, items in sorted(daily_groups.items()):
-            if date_str == today_key:
-                continue
-            if len(daily_forecast_days) >= 5:
-                break
-                
-            min_temp = min(x["main"]["temp"] for x in items)
-            max_temp = max(x["main"]["temp"] for x in items)
-            
-            # Select mid-day slot for weather icon
-            rep_item = items[0]
-            for x in items:
-                if "12:00:00" in x.get("dt_txt", ""):
-                    rep_item = x
-                    break
-                elif "15:00:00" in x.get("dt_txt", ""):
-                    rep_item = x
-
-            daily_forecast_days.append({
-                "date": date_str,
-                "min_temp": min_temp,
-                "max_temp": max_temp,
-                "desc": rep_item["weather"][0]["main"],
-                "icon": rep_item["weather"][0]["icon"]
-            })
-
-        theme = WEATHER_THEMES[self.theme_key]
-
-        for row_idx, day_data in enumerate(daily_forecast_days):
-            row_frame = tk.Frame(self.daily_list_frame, bg=theme["card_bg"], bd=1, relief="solid", padx=12, pady=6)
-            row_frame.pack(fill=tk.X, pady=3)
-
-            # Date calculation (Day name)
-            dt = datetime.strptime(day_data["date"], "%Y-%m-%d")
-            day_name = dt.strftime("%A")
-            short_date = dt.strftime("%b %d")
-
-            # Day title
-            tk.Label(row_frame, text=f"{day_name} ({short_date})", font=("Segoe UI", 9, "bold"),
-                     bg=theme["card_bg"], fg=theme["fg"], width=18, anchor=tk.W).pack(side=tk.LEFT)
-
-            # Weather Icon
-            day_icon_lbl = tk.Label(row_frame, bg=theme["card_bg"])
-            day_icon_lbl.pack(side=tk.LEFT, padx=10)
-            p_img = get_weather_icon(day_data["icon"], size=(40, 40))
-            if p_img:
-                day_icon_lbl.configure(image=p_img)
-                day_icon_lbl.image = p_img
-
-            # Muted condition label
-            tk.Label(row_frame, text=day_data["desc"], font=("Segoe UI", 9),
-                     bg=theme["card_bg"], fg=theme["sub_fg"], width=12, anchor=tk.W).pack(side=tk.LEFT, padx=10)
-
-            # Temp Min - Max
-            min_c = day_data["min_temp"]
-            max_c = day_data["max_temp"]
-            
-            if self.unit_var.get() == "C":
-                temp_range_text = f"Min: {round(min_c)}°C  /  Max: {round(max_c)}°C"
-            else:
-                min_f = min_c * 9/5 + 32
-                max_f = max_c * 9/5 + 32
-                temp_range_text = f"Min: {round(min_f)}°F  /  Max: {round(max_f)}°F"
-
-            tk.Label(row_frame, text=temp_range_text, font=("Segoe UI", 9, "bold"),
-                     bg=theme["card_bg"], fg=theme["fg"]).pack(side=tk.RIGHT)
-
-    def toggle_temperature_units(self):
-        """Switches all displayed temperatures client-side instantly."""
-        self.refresh_metric_labels()
-        self.render_hourly_panel()
-        self.render_daily_panel()
-        self.status_bar_update(f"Units toggled to °{self.unit_var.get()}")
-
-    def apply_theme_palette(self, theme_key):
-        """Recursively styles Tkinter widgets depending on weather conditions."""
-        self.theme_key = theme_key
-        theme = WEATHER_THEMES[theme_key]
-
-        # Background main body color updates
-        self.main_frame.configure(bg=theme["bg"])
-        self.left_col.configure(bg=theme["bg"])
-        self.right_col.configure(bg=theme["bg"])
-
-        # Styled ttk radio buttons
         style = ttk.Style()
-        style.configure("TRadiobutton", background="#ffffff", foreground="#0f172a")
+        if 'clam' in style.theme_names():
+            style.theme_use('clam')
 
-        # Traverse standard sub-widgets
-        self.recursive_style_update(self.root, theme)
+        # Generic settings
+        style.configure(".", background=theme["bg"], foreground=theme["fg"])
+        style.configure("TFrame", background=theme["bg"])
+        style.configure("TLabel", background=theme["bg"], foreground=theme["fg"])
+        
+        # Specialized Card container style
+        style.configure("Card.TFrame", background=theme["card_bg"], bordercolor=theme["border"], borderwidth=1, relief="solid")
 
-    def recursive_style_update(self, widget, theme):
-        """Walks down widget hierarchy adjusting standard colors to match active themes."""
+        # Buttons configurations
+        style.configure("TButton", background=theme["border"], foreground=theme["fg"], bordercolor=theme["border"], font=("Segoe UI", 9))
+        style.map("TButton", 
+                  background=[("active", theme["bg"]), ("pressed", theme["border"])],
+                  foreground=[("active", theme["accent"])])
+
+        style.configure("Action.TButton", background=theme["accent"], foreground="white", bordercolor=theme["accent"], font=("Segoe UI", 9, "bold"))
+        style.map("Action.TButton", 
+                  background=[("active", theme["accent_hover"]), ("pressed", theme["accent"])],
+                  foreground=[("active", "white")])
+
+        # Spinbox & Check Button styling overrides
+        style.configure("TCheckbutton", background=theme["card_bg"] if "Card" in self.root.winfo_name() else theme["bg"], foreground=theme["fg"])
+        style.map("TCheckbutton", background=[("active", theme["bg"])], foreground=[("active", theme["accent"])])
+        
+        style.configure("TRadiobutton", background=theme["bg"], foreground=theme["fg"])
+        style.map("TRadiobutton", background=[("active", theme["bg"])], foreground=[("active", theme["accent"])])
+
+        # Scale slider track color styling (basic clam override)
+        style.configure("TScale", background=theme["bg"], troughcolor=theme["border"])
+
+        # Walk widgets hierarchy
+        self.recursive_theme_update(self.root, theme)
+        
+        # Redraw canvas meter
+        self.update_strength_display()
+        
+        # Redraw history panels
+        self.redraw_history()
+
+    def recursive_theme_update(self, widget, theme):
+        """Walks down widget hierarchy to customize underlying standard Tk element colors."""
         w_class = widget.winfo_class()
         
         try:
-            # Custom styled cards
-            if widget in [self.current_card, self.hourly_card, self.daily_card, self.daily_list_frame, self.hourly_row]:
-                widget.configure(bg=theme["card_bg"], highlightbackground=theme["border"])
-            elif widget in [self.humidity_card, self.wind_card, self.pressure_card, self.visibility_card]:
-                widget.configure(bg=theme["card_bg"], highlightbackground=theme["border"])
+            if w_class == "Frame":
+                widget.configure(bg=theme["bg"])
             elif w_class == "Label":
-                # Determine bg color based on parent hierarchy
-                parent = widget.master
-                if parent in [self.humidity_card, self.wind_card, self.pressure_card, self.visibility_card, self.current_card, self.hourly_card, self.daily_card, self.daily_list_frame, self.hourly_row]:
-                    widget.configure(bg=theme["card_bg"], fg=theme["fg"])
-                else:
-                    # Let default labels outside cards remain background transparent
-                    pass
-            elif w_class == "Frame":
-                # Let generic frames inside main container use current theme backgrounds
-                if widget not in [self.main_frame, self.left_col, self.right_col]:
-                    widget.configure(bg=theme["card_bg"])
+                # Check if inside a card layout for text bg adjustments
+                parent_style = widget.master.winfo_class()
+                widget.configure(bg=theme["bg"], fg=theme["fg"])
+            elif w_class == "Canvas":
+                widget.configure(bg=theme["card_bg"], highlightbackground=theme["border"])
+            elif isinstance(widget, tk.Entry):
+                # Standard Tk entries styling
+                widget.configure(bg=theme["bg"] if widget == self.output_entry else theme["card_bg"],
+                                 fg=theme["fg"], insertbackground=theme["fg"],
+                                 highlightbackground=theme["border"], highlightcolor=theme["accent"])
+            elif isinstance(widget, tk.Spinbox):
+                # Standard Tk spinboxes styling
+                widget.configure(bg=theme["card_bg"], fg=theme["fg"], buttonbackground=theme["border"],
+                                 buttoncolor=theme["fg"], relief=tk.FLAT, bd=1, highlightbackground=theme["border"])
         except Exception:
-            pass
+            pass # Skip widget type unsupported actions
             
         for child in widget.winfo_children():
-            self.recursive_style_update(child, theme)
-
-    def status_bar_update(self, text):
-        """Modifies status message directly on root frame title/status variables."""
-        # Setup self.status_lbl if not configured, or modify title
-        self.root.title(f"AuraWeather - {text}")
+            self.recursive_theme_update(child, theme)
 
 
 def main():
     root = tk.Tk()
-    app = WeatherApp(root)
+    app = PasswordGeneratorApp(root)
+    
+    # Graceful intercept of window close operations
+    def on_close():
+        root.destroy()
+        
+    root.protocol("WM_DELETE_WINDOW", on_close)
     root.mainloop()
 
 
