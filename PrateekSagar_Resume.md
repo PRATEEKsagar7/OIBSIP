@@ -5,7 +5,7 @@
 ---
 
 ## PROFESSIONAL SUMMARY
-Passionate and motivated **Bachelor of Computer Applications (BCA)** student with hands-on experience in **Python Software Development**, **Ethical Hacking**, and **Entrepreneurship**. eJPT-certified Junior Penetration Tester and Co-Founder of **Securofy**, with strong capabilities in network socket programming, database systems, dynamic visual GUIs, and ethical hacking fundamentals. Proven track record of building secure, multi-threaded desktop applications and voice-controlled AI systems.
+Passionate and motivated **Bachelor of Computer Applications (BCA)** student with hands-on experience in **Python Software Development** and an active interest in **Cybersecurity**. Possesses strong capabilities in network socket programming, database systems, dynamic visual GUIs, and network security fundamentals. Proven track record of building secure, multi-threaded desktop applications and voice-controlled AI systems.
 
 ---
 
@@ -17,7 +17,6 @@ Passionate and motivated **Bachelor of Computer Applications (BCA)** student wit
 ---
 
 ## CERTIFICATIONS
-* **eLearnSecurity Junior Penetration Tester (eJPT)** – Credentials in network security, system reconnaissance, and penetration testing methodologies.
 * **Python Development Intern** – Oasis Infobyte (Completion: July 2026).
 
 ---
@@ -27,17 +26,11 @@ Passionate and motivated **Bachelor of Computer Applications (BCA)** student wit
 * **Libraries & Frameworks**: Tkinter (Desktop GUI), Matplotlib, PIL (Pillow), requests, Socket (TCP/IP), Pyttsx3, SpeechRecognition.
 * **Database & Persistence**: SQLite3, relational schema design, JSON, CSV reporting.
 * **Developer Tools & Workflow**: Git, GitHub, Threading (Parallel Execution), Command Line (Shell/PowerShell).
-* **Security & Cryptography**: Salted Password Hashing (PBKDF2-HMAC-SHA256), Network Penetration Testing, OWASP Top 10, Vulnerability Assessment.
+* **Security & Concepts**: Salted Password Hashing (PBKDF2-HMAC-SHA256), Network Security Fundamentals, System Reconnaissance, Ethical Hacking Basics.
 
 ---
 
 ## PROFESSIONAL EXPERIENCE
-
-### **Co-Founder & Penetration Tester** | *Securofy*  
-*Delhi, India | 2025 – Present*
-* Co-founded a cybersecurity startup focused on providing security testing and vulnerability assessments for digital platforms.
-* Perform system reconnaissance, security audits, and penetration testing workflows aligned with eJPT methodologies to identify critical OWASP vulnerabilities.
-* Deliver technical remediation documentation and report threat profiles to strengthen network security postures.
 
 ### **Python Development Intern** | *Oasis Infobyte*  
 *July 2026 – Present (Remote)*
