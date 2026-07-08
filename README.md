@@ -1,11 +1,13 @@
 # Oasis Infobyte Python Development Internship (OIBSIP)
 
-Welcome to my submission repository for the Oasis Infobyte Python Development Internship. This repository contains advanced graphical desktop applications built using Python, `tkinter`, and standard libraries.
+Welcome to my submission repository for the Oasis Infobyte Python Development Internship. This repository contains five advanced graphical desktop applications built using Python, `tkinter`, and standard libraries.
 
 ---
 
 ## Repository Contents & File Names
 
+- **Task 1: Intelligent Voice Assistant**
+  - **Filename:** [PrateekSagar_Task1.py](file:///c:/Users/prateek%20sagar/.vscode/OIBSIP/PrateekSagar_Task1.py)
 - **Task 2: Body Mass Index (BMI) Calculator**
   - **Filename:** [PrateekSagar_Task2.py](file:///c:/Users/prateek%20sagar/.vscode/OIBSIP/PrateekSagar_Task2.py)
 - **Task 3: Cryptographically Secure Password Generator**
@@ -18,6 +20,21 @@ Welcome to my submission repository for the Oasis Infobyte Python Development In
 ---
 
 ## Project Details
+
+### 🎙️ Task 1: AuraVoice - Intelligent Voice Assistant
+An advanced Python-based voice assistant featuring an animated sine-wave visualization, intent parsing NLU engine, and automated background alarms.
+* **Core Features**:
+  * **Sine-wave visualizer**: Custom canvas animation representing speaking, listening, and processing states.
+  * **Thread-safe TTS**: Background queue worker prevents GUI lockups.
+  * **Intent Recognition**: Rule-based NLU mapping free-form statements to tasks.
+  * **Integrations**: Live weather API, DuckDuckGo QA engine, and guided email form dictation.
+  * **Timers**: Set background delay timers that trigger popups and winsound beeping alarms.
+  * **Custom Commands macros**: Voice-guided interface recording trigger-response keypairs stored in `voice_commands.json`.
+* **Privacy & Data Processing Disclosure**:
+  * **Audio Processing**: Captured audio is sent to the Google Speech Recognition web service to transcribe voice to text. Raw audio buffers are never saved locally.
+  * **API Requests**: Queries are sent to DuckDuckGo (General knowledge) and OpenWeatherMap (Weather details) over HTTPS. No personal identifying markers are shared.
+
+---
 
 ### 📊 Task 2: AuraBMI - Premium Health Suite
 An advanced, multi-featured desktop BMI calculator featuring a modern dashboard design, history trend lines, and user profile management.
@@ -57,11 +74,10 @@ A real-time messaging application with user authentication, custom chat rooms, a
   * **Emoji translation**: Translates common text shortcodes (e.g. `:smile:`, `:heart:`) to Unicode.
   * **Alert triggers**: Flashes window titles and plays asterisk alert chimes when a new message arrives and the window is unfocused.
   * **Room History**: Automatically caches and loads the last 50 room messages from SQLite upon joining.
-
-#### 🛡️ Security Transparency Disclosure (E2E Awareness)
-* **Message Transmission**: Sockets transmit JSON strings encoded as raw UTF-8. **There is no End-to-End (E2E) message encryption in transit.** Payloads can be intercepted by network packets sniffers on the same local network subnet.
-* **Local Storage**: Historical room messages are saved as plain text within `chat_history.db` on the server host to enable quick history fetches.
-* **Logins Registry**: User credentials are secure. Passwords undergo pbkdf2 salted hashing (`PBKDF2-HMAC-SHA256` with random 16-byte unique salts) prior to SQLite storage, preventing credential theft in the event of database leaks.
+* **Security Transparency Disclosure**:
+  * **Message Transmission**: Sockets transmit JSON strings encoded as raw UTF-8. **There is no End-to-End (E2E) message encryption in transit.**
+  * **Local Storage**: Historical room messages are saved as plain text within `chat_history.db` on the server host.
+  * **Logins Registry**: User credentials are secure. Passwords undergo pbkdf2 salted hashing (`PBKDF2-HMAC-SHA256` with random 16-byte unique salts) prior to SQLite storage.
 
 ---
 
@@ -70,13 +86,16 @@ A real-time messaging application with user authentication, custom chat rooms, a
 ### Prerequisites
 Make sure you have Python 3.11+ installed. Install the external dependencies using pip:
 ```bash
-pip install matplotlib requests pillow pyperclip
+pip install matplotlib requests pillow pyperclip SpeechRecognition pyttsx3 pyaudio
 ```
 
 ### Execution
 Run any task script directly using Python:
 
 ```bash
+# Run Task 1 (Voice Assistant)
+python PrateekSagar_Task1.py
+
 # Run Task 2 (BMI Calculator)
 python PrateekSagar_Task2.py
 
@@ -87,6 +106,5 @@ python PrateekSagar_Task3.py
 python PrateekSagar_Task4.py
 
 # Run Task 5 (Chat Application)
-# Launch Server on one terminal, then launch Clients on others
 python PrateekSagar_Task5.py
 ```
