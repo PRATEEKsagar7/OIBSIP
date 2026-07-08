@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prateek Sagar - Resume</title>
+  <style>
+    /* CSS Styling for Resume Page */
+    :root {
+      --primary: #1e293b;
+      --secondary: #475569;
+      --accent: #4f46e5;
+      --text: #0f172a;
+      --border: #cbd5e1;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+      color: var(--text);
+      line-height: 1.45;
+      padding: 2.5em 3em;
+      max-width: 800px;
+      margin: 0 auto;
+      background-color: #ffffff;
+    }
+
+    /* Header styles */
+    header {
+      text-align: center;
+      margin-bottom: 1.5em;
+    }
+
+    header h1 {
+      font-size: 2.2em;
+      font-weight: 800;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.15em;
+    }
+
+    .contact-info {
+      font-size: 0.9em;
+      color: var(--secondary);
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 5px;
+    }
+
+    .contact-info a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .contact-info a:hover {
+      text-decoration: underline;
+    }
+
+    /* Section structures */
+    section {
+      margin-bottom: 1.4em;
+    }
+
+    h2 {
+      font-size: 1.05em;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 3px;
+      margin-bottom: 8px;
+    }
+
+    p.summary {
+      font-size: 0.92em;
+      color: var(--secondary);
+      text-align: justify;
+    }
+
+    /* Lists */
+    ul {
+      list-style-type: square;
+      margin-left: 20px;
+      margin-top: 5px;
+    }
+
+    li {
+      font-size: 0.9em;
+      color: var(--secondary);
+      margin-bottom: 4px;
+    }
+
+    li strong {
+      color: var(--text);
+    }
+
+    /* Grid layout for education & experience */
+    .row-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 0.92em;
+      font-weight: bold;
+      color: var(--primary);
+    }
+
+    .row-sub {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 0.88em;
+      font-style: italic;
+      color: var(--secondary);
+      margin-bottom: 4px;
+    }
+
+    /* Project grid layout */
+    .project {
+      margin-bottom: 12px;
+    }
+
+    .project-header {
+      font-size: 0.92em;
+      font-weight: bold;
+      color: var(--primary);
+      margin-bottom: 2px;
+    }
+
+    .project-header span {
+      font-weight: 500;
+      font-style: italic;
+      font-size: 0.95em;
+      color: var(--accent);
+    }
+
+    /* Print styling rules */
+    @media print {
+      body {
+        padding: 1.5em 2em;
+        font-size: 12px;
+      }
+      section {
+        margin-bottom: 1em;
+      }
+      h2 {
+        margin-bottom: 6px;
+      }
+      .project {
+        margin-bottom: 8px;
+      }
+      @page {
+        margin: 0.5cm;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Prateek Sagar</h1>
+    <div class="contact-info">
+      <span>📍 Uttam Nagar, Delhi, India</span>
+      <span>✉️ <a href="mailto:prateeksagar640@gmail.com">prateeksagar640@gmail.com</a></span>
+      <span>🔗 <a href="https://www.linkedin.com/in/parteek-sagar-4561ab38b" target="_blank">LinkedIn</a></span>
+      <span>💻 <a href="https://github.com/PRATEEKsagar7" target="_blank">GitHub</a></span>
+    </div>
+  </header>
+
+  <section>
+    <h2>Professional Summary</h2>
+    <p class="summary">
+      Passionate and motivated <strong>Bachelor of Computer Applications (BCA)</strong> student with hands-on experience in <strong>Python Software Development</strong> and an active interest in <strong>Cybersecurity</strong>. Possesses strong capabilities in network socket programming, database systems, dynamic visual GUIs, and network security fundamentals. Proven track record of building secure, multi-threaded desktop applications and voice-controlled AI systems.
+    </p>
+  </section>
+
+  <section>
+    <h2>Education</h2>
+    <div class="row-header">
+      <span>Bachelor of Computer Applications (BCA)</span>
+      <span>Expected Graduation: 2028</span>
+    </div>
+    <div class="row-sub">
+      <span>Delhi, India</span>
+      <span>College Student</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Certifications</h2>
+    <ul>
+      <li><strong>Python Development Intern</strong> – Oasis Infobyte (Completion: July 2026)</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Technical Skills</h2>
+    <ul>
+      <li><strong>Programming Languages:</strong> Python, C++, Java, HTML, CSS, JavaScript, SQL.</li>
+      <li><strong>Libraries & Frameworks:</strong> Tkinter (Desktop GUI), Matplotlib, PIL (Pillow), requests, Socket (TCP/IP), Pyttsx3, SpeechRecognition.</li>
+      <li><strong>Database & Persistence:</strong> SQLite3, relational schema design, JSON, CSV reporting.</li>
+      <li><strong>Developer Tools & Workflow:</strong> Git, GitHub, Threading (Parallel Execution), Command Line (Shell/PowerShell).</li>
+      <li><strong>Security & Concepts:</strong> Salted Password Hashing (PBKDF2-HMAC-SHA256), Network Security Fundamentals, System Reconnaissance, Ethical Hacking Basics.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Professional Experience</h2>
+    <div class="row-header">
+      <span>Python Development Intern</span>
+      <span>July 2026 – Present</span>
+    </div>
+    <div class="row-sub">
+      <span>Oasis Infobyte</span>
+      <span>Remote</span>
+    </div>
+    <ul>
+      <li>Built and structured five advanced graphical desktop applications, delivering cleanly formatted Python source codes in a unified, Git-versioned submission repository.</li>
+      <li>Implemented multithreading, API integrations, and persistent SQLite relational database schemas across multiple projects.</li>
+      <li>Documented technical parameters and security disclosures in Markdown readmes, scoring highly on organizational clarity.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Technical Projects</h2>
+    
+    <div class="project">
+      <div class="project-header">🤖 Friday – <span>Interactive AI Voice Desktop Agent</span></div>
+      <ul>
+        <li>Configured real-time, threaded speech recognition (STT) and voice feedback (TTS) scripts to process continuous voice prompts without UI freezing.</li>
+        <li>Integrated custom automation triggers to launch web browsers, search dynamic topics, retrieve real-time dates/times, and control local files.</li>
+        <li>Built persistent JSON-based memory models allowing the assistant to store session records and custom keyword macros.</li>
+      </ul>
+    </div>
+
+    <div class="project">
+      <div class="project-header">💬 AuraChat – <span>Multi-Room Socket Messaging Suite</span></div>
+      <ul>
+        <li>Engineered a unified startup launcher containing both the Multi-threaded Server Monitor and the Client GUI Chat Dashboard.</li>
+        <li>Resolved TCP stream fragmentation using a 4-byte length-prefix header preceding JSON data packets.</li>
+        <li>Built a local login system storing PBKDF2-HMAC-SHA256 hashed and salted credentials in SQLite database.</li>
+        <li>Monitored GUI window focus state, triggering Winsound alert chimes and flashing title bars for background messages.</li>
+      </ul>
+    </div>
+
+    <div class="project">
+      <div class="project-header">☀️ AuraWeather – <span>Real-Time Weather Suite</span></div>
+      <ul>
+        <li>Triangulated current user city on launch via IP address geocoding APIs.</li>
+        <li>Automatically mapped UI theme colors, borders, and gradients to current weather states (Clear sun, Grey cloudiness, Slate rain, Fog mist).</li>
+        <li>Coded a PIL/Pillow image fetcher to download and cache OpenWeatherMap CDN condition icons.</li>
+      </ul>
+    </div>
+
+    <div class="project">
+      <div class="project-header">🔑 AuraPass – <span>Secure Password Suite</span></div>
+      <ul>
+        <li>Enforced complexity filters using secrets and a secure Fisher-Yates shuffle to guarantee category representation.</li>
+        <li>Calculated mathematical Shannon entropy, displaying a 4-tier colored strength bar, and built a masked session history viewer.</li>
+      </ul>
+    </div>
+
+    <div class="project">
+      <div class="project-header">📊 AuraBMI – <span>Premium Health Analytics Dashboard</span></div>
+      <ul>
+        <li>Custom canvas needle gauge displays dynamic classifications.</li>
+        <li>Integrated Matplotlib trend lines showing healthy target zones as colored background bands.</li>
+      </ul>
+    </div>
+
+  </section>
+
+</body>
+</html>
