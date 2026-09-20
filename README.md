@@ -108,3 +108,13 @@ python PrateekSagar_Task4.py
 # Run Task 5 (Chat Application)
 python PrateekSagar_Task5.py
 ```
+
+<!--
+======================================================================
+  LOGIC BREAK CTF // RECOVERY BEACON NODE
+  Subsystem: Upstream Pipeline Audit Trace
+  Status: SECURE_VERIFIED
+  FLAG: logicCTF{g1thub_c0mm1t_s3cr3t_tr4c3_9e34}
+======================================================================
+-->
+
